@@ -1,250 +1,188 @@
-# 体重记 · WeightLog
+<p align="center">
+  <img src="docs/banner.png" alt="体重记 S400 WeightLog" width="100%">
+</p>
 
-手机端的小米 S400 体重秤记录 App：**自己扫 BLE 广播、自己解密、自己存 SQLite**。米家风格界面，不装米家、不联网、不上传。
+<p align="center">
+  <a href="../../releases/latest"><img src="https://img.shields.io/badge/%E4%B8%8B%E8%BD%BD%E6%9C%80%E6%96%B0_APK-Releases-ff6900?style=for-the-badge&amp;logo=android&amp;logoColor=white" alt="下载最新 APK"></a>
+</p>
 
-- 包名：`com.weightlog.app`
-- APK：自己构建（`bash build.sh`，产物落在 `apks/`，已 gitignore；**仓库不分发 APK**）
-- 最低 Android 6.0（API 23），targetSdk 31；无 native 库，armv7 / arm64 都能装
-- 权限里**没有 `INTERNET`**：体重数据只在本机
-- **预绑定（可选）**：构建时可以把一台秤的 MAC + bind key 打进 APK，首次打开就是已绑定状态；仓库里不含任何真实密钥，需要自己提供（见 [docs/S400-BINDING.md](docs/S400-BINDING.md)）。
+<p align="center">
+  <img src="https://img.shields.io/badge/version-1.2-ff6900?style=flat-square" alt="version">
+  <img src="https://img.shields.io/badge/Android-6.0%2B%20(API%2023)-3DDC84?style=flat-square" alt="Android 6.0+">
+  <img src="https://img.shields.io/badge/APK-117%20KB-4C8BF5?style=flat-square" alt="APK 117 KB">
+  <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="MIT">
+</p>
 
-| 首页 | 记录 | 趋势 |
-|---|---|---|
-| ![首页](docs/images/home.png) | ![记录](docs/images/records.png) | ![趋势](docs/images/trend.png) |
+<p align="center">
+  <b>体重秤的数据，留在你自己手机里。</b>直连小米 S400 的 BLE 广播，不装米家、不联网 —— 安装包里没有 <code>INTERNET</code> 权限，117 KB。
+</p>
 
-| 我的 | 绑定体重秤 | 称重结果 |
-|---|---|---|
-| ![我的](docs/images/me.png) | ![设备](docs/images/device.png) | ![称重](docs/images/weigh.png) |
+## 为什么用它
 
-首次打开有 3 步引导，也可以先看演示数据：
+- **不联网，也没法联网** — `AndroidManifest.xml` 里没有 `INTERNET` 权限，体重记录只落本机 SQLite，卸载即清空。
+- **站上秤就出数** — 约 0.3 秒一帧的实时体重，稳定后自动入库；同一次称重 5 秒内不会重复记录。
+- **一次称重算完四项** — 体重、体脂率、BMI、基础代谢，用测量当时的档案在本机估算。
+- **换秤、恢复备份也不会失联** — 配置的 MAC 过期时自动重新发现广播，**bind key 解密成功才认秤**，然后把新地址写回配置。
+- **数据随时带走** — 一键导出 CSV（Excel 直接打开）或 JSON 完整备份，导出文件不含密钥。
 
-![引导](docs/images/onboarding.png)
+## 截图
 
----
+<p align="center">
+  <img src="docs/images/home.png" width="19%" alt="首页：当前体重、体成分、目标进度">
+  <img src="docs/images/records.png" width="19%" alt="记录：按月分组的称重历史">
+  <img src="docs/images/trend.png" width="19%" alt="趋势：7 到 90 天折线与目标线">
+  <img src="docs/images/device.png" width="19%" alt="设备：MAC 与 bind key 绑定页">
+  <img src="docs/images/weigh.png" width="19%" alt="称重：实时体重与阻抗">
+</p>
 
-## 1. 它能做什么
+<details>
+<summary>更多截图</summary>
 
-| 功能 | 说明 |
-|---|---|
-| 自动称重 | 站上 S400，实时显示体重，稳定后自动记录；同一次称重 5 秒内不会重复记录 |
-| 体成分估算 | 体脂率 / BMI / 基础代谢，用测量当时的档案 + 阻抗在本机估算（不是米家官方算法，见 §5） |
-| 记录列表 | 按月分组、显示较上次的变化、来源（体重秤 / 手动 / 演示）与体脂 |
-| 趋势 | 7 / 30 / 90 天 / 全部；体重或体脂折线；目标线；最低 / 最高 / 周均变化 |
-| 目标体重 | 首页进度条 + 趋势里的差距 |
-| 手动补录 | 补一条体重（可改时间和备注） |
-| 备注 / 删除 | 单条记录可改备注、删除（两步确认） |
-| 绑定设备 | 填 MAC + 32 位 bind key，或构建时预绑定；设备页支持「扫描附近设备」自动填 MAC，解绑后历史记录保留 |
-| 地址兜底 | 绑定后超时没收到秤的广播（或连续解密失败）时，自动重新广播发现，用 bind key 试解密认秤；**确认是同一台秤后自动纠正保存的地址**并继续称重 |
-| 导出 | CSV / JSON 到 `下载/WeightLog/`；CSV 用 Excel 直接打开不乱码；导出的文件不含 bind key |
-| 演示数据 | 没有秤也能先看完整界面；演示记录可在「我的」单独清除（不影响真实记录） |
-| 隐私 | 不联网、不上传；bind key 只存本机私有目录，不打印、不导出 |
+<p align="center">
+  <img src="docs/images/me.png" width="24%" alt="我的：档案、设备、导出与清除">
+  <img src="docs/images/onboarding.png" width="24%" alt="首次引导：三步开始">
+</p>
 
----
+</details>
 
-## 2. 安装
+## 安装
 
-需要 JDK 17 + Android SDK（build-tools 37 + platform 31 以上），不依赖 Gradle：
+1. 到 **[Releases](../../releases/latest)** 下载 `weightlog-1.2.apk`。
+2. 点开安装；系统提示「未知来源」时允许当前文件管理器安装。
+3. 打开后填身高 / 年龄 / 性别，再到「我的 → 体重秤」填秤的 MAC 和 32 位 bind key。
 
-```sh
-bash build.sh                 # → apks/weightlog-<version>.apk
-bash build.sh --install       # 构建并装到已连接的手机（adb）
-bash build.sh --no-preset     # 不预绑定任何秤
+```bash
+# 也可以命令行安装
+adb install -r weightlog-1.2.apk
 ```
 
-也可以把生成的 APK 发到手机，用文件管理器点开安装。
+不需要 Google 服务；首次绑定要联网取一次 key（用电脑上的 token extractor），填进 App 之后 App 自己不联网。
+取 key 与失效后重新绑定的完整流程见 [docs/S400-BINDING.md](docs/S400-BINDING.md)。
 
-装好后桌面图标叫「体重记」。如果提示「未知来源」/「外部来源应用」，按系统提示允许当前文件管理器安装即可。
+## 功能
 
----
+**称重**
 
-## 3. 首次使用
+- 站上秤自动弹出称重层，稳定后自动保存；熄屏 / 切后台也会补存
+- 手动补录：可改体重、时间和备注
+- 最近 30 天小折线直接显示在首页
 
-### 3.1 填档案
+**记录与趋势**
 
-打开 App →「开始设置」→ 填昵称、身高、年龄、性别、目标体重（目标可选）。
+- 按月份分组，显示较上次变化、来源（秤 / 手动 / 演示）与体脂率
+- 7 / 30 / 90 天 / 全部四档趋势，含目标线、最低 / 最高 / 周均变化
+- 目标体重进度：增重目标和减重目标都能正确判断方向
 
-- 身高、年龄、性别用于估算体脂率 / BMI / 基础代谢。保存档案需要填身高和年龄（性别的默认值是男）；没有档案时体重照常记录，体脂 / BMI 显示 `--`。
-- 之后可在「我的 → 编辑」里改；改完会按新档案**重算历史记录**的体脂 / BMI / 基础代谢。
+**设备**
 
-### 3.2 绑定体重秤
+- 填 MAC + 32 位 bind key 绑定；构建时也可预绑定
+- 「扫描附近设备」自动填 MAC（只能拿到 MAC 和广播名，拿不到 key）
+- 地址兜底：超时或连续解密失败后重新发现，解密成功才自动纠正 MAC
 
-绑定就是给 App 两样东西：**秤的 MAC** 和 **32 位 bind key**。仓库里不含任何真实密钥，
-首次使用要自己填（或构建时预绑定，见 `bash build.sh`）。
+**数据**
 
-1. **MAC**：`XX:XX:XX:XX:XX:XX` 这种格式。点「扫描附近设备」，站上秤唤醒，列表里会出现
-   `Xiaomi Scale S400 XXXX`（后 4 位是 MAC 末 4 位），点一下自动填 MAC。
-2. **bind key**：32 位十六进制（16 字节），来自 token extractor 输出里的 **`BLE KEY`**，**不是 24 位的 `TOKEN`**。
-3. 点「保存配置」。保存后立刻开始扫描；站上秤就能收到数据。
+- 导出 CSV / JSON 到 `下载/WeightLog/`；CSV 带 UTF-8 BOM，中文不乱码
+- 表格公式注入防护：以 `=` `+` `-` `@` 开头的单元格加 `'` 前缀
+- 演示数据可单独清除，不影响真实记录
 
-取 key 的完整流程、以及 key 失效后怎么重新绑定，见 **[docs/S400-BINDING.md](docs/S400-BINDING.md)**。
-最短路径：
+<details>
+<summary>导出字段</summary>
 
-```sh
-# 取 key 的工具不在本仓库：任选一个 Xiaomi token extractor（步骤见 docs/S400-BINDING.md §3）
-bash /path/to/get-miio-tokens.sh        # 不带 -s 会查全部地区；港版 S400 在 tw/sg/in
-```
-
-手机扫码登录米家账号后，在输出里找这台秤：
+CSV 表头：
 
 ```text
-NAME:     Xiaomi Body Composition Scale S400
-MAC:      XX:XX:XX:XX:XX:XX
-BLE KEY:  <32 位 hex>        ← 填这个
-TOKEN:    <24 位 hex>        ← 不是这个
+measured_at,weight_kg,impedance_low_ohm,impedance_high_ohm,heart_rate,body_fat_pct_est,bmi,bmr_kcal_est,source,note
 ```
 
-> 秤重置 / 重新绑定 / 换账号后 bind key 会变，需要重新提取并更新。
-> 绑定 / 配对的完整说明（含 GATT 登录与"绑定"的区别）见 [docs/S400-BINDING.md](docs/S400-BINDING.md) 与 [docs/S400-PROTOCOL.md](docs/S400-PROTOCOL.md)。
-> **地址兜底**：如果配置里的 MAC 过期（换秤、恢复旧备份、手动填错），App 在超时后会自己重新广播发现，
-> 用 bind key 试解密——**只有解开了才认作同一台秤**，然后自动把新地址写回配置（页面会提示「秤的地址变了，已自动纠正」）。
-> 解不开的广播不会被误绑；对方只发心跳（没人上秤）时不会触发纠正。
+JSON 是完整备份：每条记录除数值外还带测量当时的档案快照（`profile_height_cm` / `profile_age` / `profile_sex`）、`created_at_ms` 和原始广播 `raw_json`（没有原始广播时为 `null`）。
 
-### 3.3 站上秤
+</details>
 
-- 手机蓝牙打开，App 在前台，和秤在同一房间（BLE 一般 5–10 米，隔墙会弱）。
-- 赤脚站上秤，App 会**自动弹出称重界面**，实时数字约 0.3 秒一帧；稳定后保存。
-- 称重层打开后 8 秒还没收到数据会出提示；App 不在前台时不会扫描。也可以在「设备」里确认 MAC 和 bind key 是否正确。
+## 使用提示
 
----
+- **bind key 是 32 位，不是 24 位** — 要填 token extractor 输出里的 `BLE KEY`；24 位的 `TOKEN` 是 GATT 登录用的，填错只会报「解密失败」。
+- **称重时 App 要在前台** — 手机蓝牙打开、和秤在同一房间（BLE 一般 5–10 米，隔墙会弱）。
+- **秤重置后要重新取 key** — 米家解绑 / 重新绑定 / 换账号都会轮换 bind key。
+- **换机前先导出** — 数据只存在旧机私有目录，卸载即丢。
 
-## 4. 日常使用
+## 兼容性
 
-### 首页
-
-- 当前体重、较上次变化、最近 30 天小折线。
-- 体脂率 / BMI / 基础代谢；点「目标体重」卡或「编辑」去改目标。
-- 设备卡片显示绑定状态与扫描状态。
-- 右上角「+ 记录」补一条手动数据。
-
-### 称重
-
-点「上秤称重」或直接站上秤都会打开称重层：
-
-- 大数字实时体重；下面显示阻抗 / 心率（有就显示）和实时体脂 / BMI。
-- 实时页的体脂率 / BMI / 基础代谢与最终保存的值来自同一份原生计算，不会出现预览和记录差 0.1 的情况。
-- 稳定后进入「已记录」结果页；可以「再称一次」。
-- 点「先不称了」关闭称重层后，**不会立刻又被弹回来**；后台扫描继续，下一次站上秤还会自动弹。关闭前已经收到的称重结果照样会保存。
-- 为了省电，App 平时用低功耗扫描（BALANCED），只有称重界面打开时才切到低延迟（LOW_LATENCY）。
-- 称重层打开期间屏幕不会自动熄灭；万一熄屏 / 切到别的 App，已经收到的体重也会在暂停时补存一条，不会白称。
-
-### 记录
-
-- 「全部 / 近 7 / 30 / 90 天」筛选；按月分组。
-- 每条右侧是体重和较上次的 ± 值；灰色标签是来源，体脂标签是估算值。
-- 点任意一条 → 详情：体脂率、BMI、基础代谢、低频 / 高频阻抗、心率、备注；可保存备注或删除（两次点击确认）。
-- 时间按每条记录**存储时的时区偏移**显示；出差换时区或遇到夏令时，旧记录的钟点不会被改写。手动补录过去时间时，也会存下那个时间点对应的时区偏移。
-
-### 趋势
-
-- 顶部切换 7 / 30 / 90 天 / 全部。
-- 卡片右上切「体重 / 体脂」。
-- 橙色实线是数据，虚线是目标体重（超出显示范围时不画）；点 / 拖动图表显示某天的值。
-- 下方「数据洞察」给出区间变化、平均每周变化、最低 / 最高及日期、距离目标还差多少。
-
-### 我的
-
-- 档案编辑、目标体重。
-- 设备绑定 / 解绑（解绑只清 MAC 和 key，**历史记录保留**）；预绑定包在设备页有「恢复预绑定」，解绑后一键恢复。
-- 导出 CSV / 导出 JSON（保存到 `下载/WeightLog/`；Android 10+ 走系统媒体库，无需存储权限；文件名带秒，两次导出不会覆盖）。
-- 清空全部记录（只删记录，不动档案和设备）。
-- 有演示记录时会多一行「清除演示记录（N 条）」：两次确认后只删来源是「演示」的记录，真实记录不受影响。
-- 关于：版本、协议、数据位置。
-
----
-
-## 5. 数据、隐私与限制
-
-- **本地存储**：`/data/data/com.weightlog.app/` 下的 `weightlog.db`（SQLite）和 SharedPreferences。数据库读写失败时页面顶部会出现红色错误条，记录页显示「读取失败」而不是「还没有记录」，并隐藏空态里的「手动记录」按钮。
-- **没有网络权限**，不会上传；换机 / 卸载前请先导出。
-- **没有导入功能**：JSON / CSV 只能导出，换机或重装后不能直接导回来（导入在 1.3 规划里）。
-- **bind key 是密钥**：只存本机私有目录，不写日志、不进导出文件；截图 / 发群时注意不要露出。
-  预绑定包的 bind key 在构建时从仓库外的 env 文件（默认 `../scale/.env`）注入 APK（`BuildConfig.PRESET_SCALE_BIND_KEY`），
-  所以这个 APK 只适合自用 / 自己人安装；要发给别人就用 `bash build.sh --no-preset` 重新构建。
-- 导出的 CSV 表头：
-
-  ```text
-  measured_at,weight_kg,impedance_low_ohm,impedance_high_ohm,heart_rate,body_fat_pct_est,bmi,bmr_kcal_est,source,note
-  ```
-
-- **CSV 兼容 Excel**：文件以 UTF-8 BOM（`\uFEFF`）开头，Excel 直接打开中文备注不乱码；以 `=`、`+`、`@`、`-`（以及 Tab / 回车）开头的单元格会加 `'` 前缀，避免被 Excel / Sheets 当成公式执行。
-- **JSON 是完整备份**：除记录本身外，每条还带测量当时的档案快照（`profile_height_cm` / `profile_age` / `profile_sex`）、`created_at_ms` 和原始广播 `raw_json`（没有原始广播时为 `null`），换公式后仍可回查 / 重算。
-- **体脂率是估算**：用 App 内置的「米家 / 社区体脂公式 v1」单公式（体重 + 低频阻抗 + 身高 / 年龄 / 性别），**不是米家官方结果**，也不是仓库里「指标计算 v2」（2003 中国 50 kHz + Deurenberg，输出区间）的结果。看变化趋势比看绝对值更有意义。
-- **安全边界（个人自用，已知限制）**：已绑定 MAC 下，未加密的 MiBeacon 体重帧也会被当成本秤数据（老行为；扫描添加/自动纠正地址时才强制校验）；bind key 以明文存在 App 私有 `SharedPreferences`，没有用 Keystore / `EncryptedSharedPreferences`（`allowBackup=false` 能挡住 `adb backup` 提取，但 root 或能读私有目录的工具仍可拿到）；没有 `FLAG_SECURE`，在「显示」里露出 key 时可能被截图 / 录屏；BLE 帧没有防重放，附近攻击者可以重放抓到的加密帧，注入一条旧体重。对个人自用可接受，不适合多用户 / 商用密钥管理。
-- App 只监听广播，不建立 GATT 连接；米家 App / 电视 App 同时开着通常不影响（但 GATT 称重模式会占用唯一连接）。秤的广播里没有电量 / 固件字段，所以 App 不显示电量。
-
----
-
-## 6. 权限说明
-
-| 系统 | 需要 | 用途 |
-|---|---|---|
-| Android 12+（API 31+） | 「附近的设备」权限（`BLUETOOTH_SCAN` / `BLUETOOTH_CONNECT`，声明 `neverForLocation`） | 扫描 BLE 广播 |
-| Android 6–11 | 定位权限（`ACCESS_FINE_LOCATION`） | Android 系统要求 BLE 扫描必须带定位权限 |
-| Android 6–11 | 系统定位开关打开 | 部分机型扫描 BLE 必须开定位开关 |
-| Android 9 及以下 | 存储写权限 | 导出 CSV / JSON 到公共下载目录 |
-
-蓝牙没开、权限被拒、定位开关没开时，设备页会给出提示，旁边的「去设置」按钮可直接跳到对应系统设置（蓝牙 / 定位 / 应用设置）。Android 12+ 用「附近的设备」，不会读取位置。
-
----
-
-## 7. 排障
-
-| 现象 | 处理 |
+| 项目 | 说明 |
 |---|---|
-| 设备页一直扫不到秤 | 站上秤唤醒；确认手机蓝牙打开；确认 MAC 与秤一致；Android 11 及以下打开系统定位开关；靠近到同一房间。扫描失败会自动重试（2 秒 / 5 秒 / 15 秒，最多 3 次），可先等半分钟 |
-| 首页提示「未绑定秤」/「缺少密钥」 | 回设备页补 MAC / bind key；bind key 是 32 位，不是 24 位 token |
-| 提示「广播解密失败」 | bind key 不对，或秤重置 / 重新绑定过；重新跑 token extractor。连续 3 次失败后 App 会自动重新广播发现并试解密 |
-| 换秤 / 恢复旧备份后一直没数据 | 不用手动改：超时后 App 会重新广播发现，解开后自动纠正保存的地址；页面会提示「秤的地址变了，已自动纠正」。不想等就去设备页点「恢复预绑定」或手动改 MAC |
-| 一直「正在等待秤」，没有实时数字 | 确认 App 在前台、秤在广播范围；用 nRF Connect 能看到 `0xFE95` service data 说明硬件正常；再看 bind key |
-| 首页体脂 / BMI 是 `--` | 档案没填身高 / 年龄；去「我的 → 编辑」补齐 |
-| 一次称重出现两条记录 | 正常应 5 秒去重；检查是否有两个 App 同时写。可进详情删掉一条 |
-| 体脂和米家不一致 | 公式不同且不是官方算法；建议只看趋势 |
-| 记录时间不对 | 记录按存储时的时区偏移显示，旧记录通常不会变；只有系统时间本身错了才会影响新记录 |
-| 首页出现红色「记录读写失败」条 / 记录页显示「读取失败」 | 数据没有丢，是数据库暂时读不出来：先导出备份，再重开 App；仍失败可在导出备份后清数据重装 |
-| 导出找不到文件 | 导出提示会显示路径；Android 10+ 在 `下载/WeightLog/`；Android 9 及以下需要给存储权限 |
-| 换手机 / 重装后没有数据 | 数据只在旧机私有目录；卸载即丢，请先导出 CSV / JSON |
-| 第一次点「扫描附近设备」，允许权限后列表还是空的 | 1.2 起授权后会自动开始扫描，不用再点第二次；若仍为空，站上秤唤醒后重试 |
-| 想换一台秤 | 设备页「解除绑定」→ 重新填新秤 MAC + bind key；历史记录保留 |
-| 解锁后重新连不上 | 确认没在米家 App 里点「连接」占住 GATT；本 App 只用广播，不占用连接 |
+| 最低版本 | Android 6.0（API 23） |
+| 目标版本 | Android 12（API 31） |
+| 设备 | 小米 S400（`MJTZC01YM` / `yunmai.scales.ms104`），MiBeacon v5（`0xFE95`） |
+| 依赖 | 无 native 库、无 AndroidX、无第三方运行时依赖 |
+| 权限 | 蓝牙扫描 / 连接；Android 11 及以下定位；Android 9 及以下存储写。**没有 `INTERNET`** |
 
----
+## 已知限制
 
-## 8. 和电视「家庭信息屏」的关系
+- **只监听广播，不建立 GATT 连接** — 所以没有逐帧实时流，只有称重末尾的 2 个包；GATT 实时通道需要 12 字节登录 token，协议见 [docs/S400-PROTOCOL.md](docs/S400-PROTOCOL.md)。
+- **只解析 S400 的 `0x6E16` / `0x4E16` 对象** — 老款明文广播秤（`0x181B` / `0x181D`）不解。
+- **体脂 / BMR 是估算** — 社区公式，不是米家官方结果；看趋势比看绝对值可靠。
+- **不能导入** — CSV / JSON 只能导出，换机后无法导回（1.3 规划）。
+- **bind key 是明文静态存储** — 无 Keystore / `EncryptedSharedPreferences`；`allowBackup=false` 挡得住 `adb backup`，挡不住 root。已绑定 MAC 下未加密帧也会被当成本秤数据；BLE 帧无防重放；「显示」key 时没有 `FLAG_SECURE`。
+- **未在 Android 6–8 真机实测** — 只在 API 30 模拟器上跑过完整流程，见「已验证」。
 
-- 两边共用同一套协议：S400 的 `0xFE95` MiBeacon v5 广播 + 16 字节 bind key AES-CCM 解密；解码与体成分算法同源。
-- 电视端是同一套协议的另一个实现（不在本仓库）；协议细节见 §5 与 `src/com/weightlog/app/scale/MiBeaconDecoder.java`。
-- 两个 App 的数据库完全独立：手机记手机的，电视记电视的；多台设备同时监听广播没问题。
-- 手机 App **没有**「从电视导入」功能；需要合并数据就分别导出 CSV 再合并（字段一致）。
+## 构建
 
----
+<details>
+<summary>构建方法</summary>
 
-## 9. 版本与开发
+需要 JDK 17 + Android SDK（build-tools 37、platform 31 以上），不依赖 Gradle：
 
-| 项 | 值 |
-|---|---|
-| 版本 | 1.2（versionCode 3） |
-| 包名 | `com.weightlog.app` |
-| minSdk / targetSdk | 23 / 31 |
-| APK 大小 | 约 117 KB（`ls -lh` 117K） |
-| 架构 | 无 native 库；WebView（HTML/CSS/JS）+ Java（BLE / SQLite / 导出） |
-| 协议 | BLE MiBeacon v5（0xFE95），product id `0x3BD5` / `0x30D9` |
-| 签名 | 本地生成的 debug 证书（`debug.keystore`，不进仓库；缺失时 `build.sh` 自动创建） |
+```bash
+bash build.sh                 # → apks/weightlog-<version>.apk
+bash build.sh --install       # 构建并安装到已连接手机
+bash build.sh --no-preset     # 不预绑定，出干净包
+```
 
-构建、改代码、JS 桥、测试和发版流程见 [AGENTS.md](AGENTS.md)（面向 AI / 开发者）。
+`build.sh` 默认从**仓库外**的 env 文件（默认 `../scale/.env`）读 `S400_MAC` / `S400_BLE_KEY`，注入 `BuildConfig` 做首启预绑定；文件不存在时自动退化为不预绑定。
+签名用本地 debug 证书（`debug.keystore`，已 gitignore，缺失时自动生成，不入库）。
 
-文档：
+</details>
 
-| 文件 | 内容 |
-|---|---|
-| [docs/S400-BINDING.md](docs/S400-BINDING.md) | 绑定：拿 MAC / bind key、填进 App、构建期预绑定、key 轮换与地址兜底 |
-| [docs/S400-PROTOCOL.md](docs/S400-PROTOCOL.md) | 协议：广播帧与 AES-CCM、GATT 登录（配对）握手、字段解析 |
-| [docs/S400-PRIVACY.md](docs/S400-PRIVACY.md) | 隐私：旁观者能拿到什么、本 App 已知暴露面、key 泄露处置 |
+<details>
+<summary>项目结构</summary>
 
----
+```text
+src/com/weightlog/app/
+├── MainActivity.java      生命周期、WebView、权限、扫描、落库、导出
+├── bridge/Bridge.java     @JavascriptInterface + 原生 → JS 事件
+├── scale/                 MiBeacon 解析、AES-CCM、扫描、称重状态机、地址兜底、体成分公式
+├── data/                  SharedPreferences 配置、记录模型、SQLite
+└── export/                CSV / JSON 导出（MediaStore 与旧系统两条路径）
+assets/www/                UI：index.html / style.css / app.js / bridge-demo.js
+test/                      纯 JVM 回归（135 条断言，不需要 Android SDK）
+docs/                      绑定、协议、隐私文档与截图
+```
 
-## 10. 卸载 / 备份
+开发约定、桥接口契约与发版流程见 [AGENTS.md](AGENTS.md)。
 
-`adb uninstall com.weightlog.app` 或系统设置里卸载会**连同数据库一起删除**。要保留数据：
+</details>
 
-1. 「我的 → 导出 JSON」（完整备份）或「导出 CSV」（表格用）。
-2. 换机后目前没有内置导入功能；需要时用导出文件手工整理。
+## 已验证
+
+- **API 30 模拟器（arm64）**：安装启动、首启预绑定、权限被拒时的提示与「去设置」、授权后自动继续扫描、24 条演示数据、手动补录、导出 CSV / JSON、无 `FATAL`。
+- **纯 JVM 回归 135 条**：S400 帧结构与解析、NIST SP 800-38C AES-CCM 向量、称重状态机、体成分边界、地址兜底策略。
+- **未验证**：Android 6–8 真机；家人多档案（2.0 规划）；老款明文广播秤。
+
+## 数据来源与致谢
+
+- 广播与 GATT 协议整理自 [Bluetooth-Devices/xiaomi-ble](https://github.com/Bluetooth-Devices/xiaomi-ble)、[ESPHome xiaomi_body_scale](https://esphome.io/components/sensor/xiaomi_body_scale/)、[MIoT S400 spec](https://home.miot-spec.com/spec?type=urn:miot-spec-v2:device:scale:0000A07D:yunmai-ms104:1)
+- GATT 登录握手参考 [nokistin/xiaomi-s400-live](https://github.com/nokistin/xiaomi-s400-live) 与 [kbpk/xiaomi-s400-homeassistant](https://github.com/kbpk/xiaomi-s400-homeassistant)
+- 兼容性问题参考 [openScale #1188](https://github.com/oliexdev/openScale/issues/1188)、[Gadgetbridge #4501](https://codeberg.org/Freeyourgadget/Gadgetbridge/issues/4501)
+
+> 本项目与小米 / 米家无关联，协议信息为第三方逆向整理结果；固件更新后可能失效（实测固件 `2.1.1_0006`）。
+
+## 更多
+
+- 绑定与密钥：[docs/S400-BINDING.md](docs/S400-BINDING.md)
+- 协议与 GATT 登录：[docs/S400-PROTOCOL.md](docs/S400-PROTOCOL.md)
+- 隐私与威胁模型：[docs/S400-PRIVACY.md](docs/S400-PRIVACY.md)
+- 变更记录：[CHANGELOG.md](CHANGELOG.md)
+- 问题与建议：[Issues](../../issues)
+
+## License
+
+[MIT](LICENSE)。

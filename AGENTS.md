@@ -94,7 +94,9 @@ mijia/weightlog/
 ├── AndroidManifest.xml        # 包名、权限矩阵、单 Activity（竖屏 / adjustResize / allowBackup=false）
 ├── build.sh                   # 无 Gradle 构建 + BuildConfig 生成 + 签名
 ├── debug.keystore             # 签名证书（本地生成，.gitignore 忽略，不入库）
-├── README.md                  # 人类用户手册（安装/使用/排障）——不要塞开发细节
+├── README.md                  # GitHub 落地页 + 用户手册（安装/使用/排障）——不要塞开发细节
+├── CHANGELOG.md               # 逐版本变更（版本记录与 §16 保持同步）
+├── LICENSE                    # MIT
 ├── AGENTS.md                  # 本文件（AI/开发者唯一约定来源）
 ├── res/                       # 图标 + app_name（build.sh 会再注入一次 label）
 ├── assets/www/                # 手机 UI：index.html / style.css / app.js / bridge-demo.js

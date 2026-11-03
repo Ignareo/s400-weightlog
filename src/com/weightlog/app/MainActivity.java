@@ -1451,7 +1451,7 @@ public class MainActivity extends Activity implements Bridge.Host, BleScaleScann
             boolean ok = config.saveDevice(mac, key, "", name);
             if (!ok) {
                 result.put("ok", false);
-                result.put("error", "MAC 格式不对（例如 E8:4A:54:12:34:56）");
+                result.put("error", "MAC 格式不对（例如 02:00:00:00:00:01）");
                 return result.toString();
             }
             discoverMode = false;

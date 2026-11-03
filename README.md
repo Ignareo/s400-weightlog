@@ -20,7 +20,7 @@
 ## 为什么用它
 
 - **不联网，也没法联网** — `AndroidManifest.xml` 里没有 `INTERNET` 权限，体重记录只落本机 SQLite，卸载即清空。
-- **站上秤就出数** — 约 0.3 秒一帧的实时体重，稳定后自动入库；同一次称重 5 秒内不会重复记录。
+- **站上秤就出数** — 广播一到就自动弹出称重层并显示体重，稳定后入库；同一次称重 5 秒内不会重复记录。
 - **一次称重算完四项** — 体重、体脂率、BMI、基础代谢，用测量当时的档案在本机估算。
 - **换秤、恢复备份也不会失联** — 配置的 MAC 过期时自动重新发现广播，**bind key 解密成功才认秤**，然后把新地址写回配置。
 - **数据随时带走** — 一键导出 CSV（Excel 直接打开）或 JSON 完整备份，导出文件不含密钥。
@@ -34,6 +34,8 @@
   <img src="docs/images/device.png" width="19%" alt="设备：MAC 与 bind key 绑定页">
   <img src="docs/images/weigh.png" width="19%" alt="称重：实时体重与阻抗">
 </p>
+
+<p align="center"><sub>截图使用 App 内置的演示数据（浏览器打开 <code>?reset=1</code>），不是真实称重记录。</sub></p>
 
 <details>
 <summary>更多截图</summary>

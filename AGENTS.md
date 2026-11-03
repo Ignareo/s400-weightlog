@@ -40,7 +40,7 @@
 | 地址兜底 | 绑定扫描超时（空闲 120 s / 称重层 45 s）或连续 3 次解密失败 → 切 `RESCUE` 重新广播发现 → bind key 解密成功才自动纠正 MAC（20 s 窗口、120 s 冷却） |
 | 协议 | BLE MiBeacon v5（`0xFE95`），product id `0x3BD5` / `0x30D9`；object `0x6E16` / `0x4E16`，心跳 object=0 |
 | 解密 | 16 字节 bind key，AES-CCM（tag 4，AAD `0x11`，nonce = MAC6 + `data[2:5]` + `data[-7:-4]`） |
-| 测试用秤 | 文档/代码里的 MAC `E8:4A:54:12:34:56`、广播名 `Xiaomi Scale S400 3456` 都是**示例值**，不是真机 |
+| 测试用秤 | 文档/代码里的 MAC `02:00:00:00:00:01`、广播名 `Xiaomi Scale S400 0001` 都是**示例值**，不是真机 |
 | 本机模拟器 | AVD `mgmt30`（API 30，arm64；无 BLE 广播源） |
 | 协议细节 | `src/com/weightlog/app/scale/MiBeaconDecoder.java`；电视端是同一协议的另一个实现（不在本仓库） |
 
@@ -201,8 +201,8 @@ BLE 广播 0xFE95
 {
   "version": "1.2",
   "onboarded": true,
-  "device": {"mac": "E8:4A:54:...", "name": "Xiaomi Scale S400 3456", "bindKeySet": true, "tokenSet": false,
-             "preset": true, "presetMac": "E8:4A:54:12:34:56", "presetName": "Xiaomi Scale S400 3456"},
+  "device": {"mac": "02:00:00:...", "name": "Xiaomi Scale S400 0001", "bindKeySet": true, "tokenSet": false,
+             "preset": true, "presetMac": "02:00:00:00:00:01", "presetName": "Xiaomi Scale S400 0001"},
   "profile": {"name": "演示用户", "heightCm": 172, "age": 28, "sex": "male", "targetWeightKg": 65,
               "targetSetAtKg": 66.8, "targetSetAtMs": 1762000000000, "ready": true},
   "scan": {"supported": true, "btOn": true, "permission": true, "locationOn": true,
@@ -277,7 +277,7 @@ profile_height_cm, profile_age, profile_sex, created_at_ms, raw_json
 ### 7.2 配置（SharedPreferences `weightlog_config`）
 
 ```json
-device_v1  = {"mac":"E8:4A:54:12:34:56","bindKey":"<32 hex>","token":"","name":"..."}
+device_v1  = {"mac":"02:00:00:00:00:01","bindKey":"<32 hex>","token":"","name":"..."}
 profile_v1 = {"name":"...","heightCm":172,"age":28,"sex":"male","targetWeightKg":65,
               "targetSetAtKg":66.8,"targetSetAtMs":1762000000000}
 preset_off_v1 = true   # 用户主动解绑后抑制自动预绑定；applyPresetDevice()/恢复预绑定会清掉

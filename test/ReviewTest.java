@@ -30,7 +30,7 @@ public final class ReviewTest {
     // 需要配合本机自己的 bind key 才能解出内容——所以它不构成可解密的数据。
     private static final String S400_FRAME =
             "4859d53b3587e460bbb05d55a07a5c5bb90200005623a4c9";
-    private static final String SCAN_MAC = "E8:4A:54:12:34:56";
+    private static final String SCAN_MAC = "02:00:00:00:00:01";
 
     private static int passed;
     private static int failed;
@@ -106,7 +106,7 @@ public final class ReviewTest {
         check("frame: has object, is encrypted, no in-frame MAC",
                 frame.hasObject && frame.encrypted && !frame.hasMac);
         eq("frame: rawHex preserved", frame.rawHex, S400_FRAME);
-        eq("frame: MAC taken from scan address", hex(frame.mac), "e84a54123456");
+        eq("frame: MAC taken from scan address", hex(frame.mac), "020000000001");
         eqInt("frame: ciphertext length 12", ((byte[]) field(frame, "ciphertext")).length, 12);
         eq("frame: nonce tail 020000", hex((byte[]) field(frame, "nonceTail")), "020000");
         eq("frame: MIC 5623a4c9", hex((byte[]) field(frame, "mic")), "5623a4c9");
@@ -434,11 +434,11 @@ public final class ReviewTest {
         check("negative: frame with unknown product id is not a scale",
                 otherFrame != null && !MiBeaconDecoder.isScaleProductId(otherFrame.productId));
 
-        byte[] inFrameMac = hex("1050d53b01563412544ae8");
+        byte[] inFrameMac = hex("1050d53b01010000000002");
         check("negative: in-frame MAC matches scan address",
-                MiBeaconDecoder.parse(inFrameMac, "E8:4A:54:12:34:56") != null);
+                MiBeaconDecoder.parse(inFrameMac, "02:00:00:00:00:01") != null);
         check("negative: in-frame MAC mismatch rejected",
-                MiBeaconDecoder.parse(inFrameMac, "E8:4A:54:12:34:57") == null);
+                MiBeaconDecoder.parse(inFrameMac, "02:00:00:00:00:02") == null);
     }
 
     // ==================== 8. rescue policy (timeout → re-discover) ====================

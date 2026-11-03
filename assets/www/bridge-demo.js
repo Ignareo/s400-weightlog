@@ -199,13 +199,13 @@
     return {
       onboarded: true,
       device: {
-        mac: "E8:4A:54:12:34:56",
-        name: "Xiaomi Scale S400 3456",
+        mac: "02:00:00:00:00:01",
+        name: "Xiaomi Scale S400 0001",
         bindKeySet: true,
         tokenSet: false,
         preset: true,
-        presetMac: "E8:4A:54:12:34:56",
-        presetName: "Xiaomi Scale S400 3456"
+        presetMac: "02:00:00:00:00:01",
+        presetName: "Xiaomi Scale S400 0001"
       },
       profile: profile,
       theme: "demo",
@@ -492,7 +492,7 @@
       var input = typeof json === "string" ? JSON.parse(json) : json;
       var mac = String(input.mac || "").toUpperCase().replace(/[^0-9A-F]/g, "");
       if (mac.length !== 12) {
-        return JSON.stringify({ ok: false, error: "MAC 格式不对（例如 E8:4A:54:12:34:56）" });
+        return JSON.stringify({ ok: false, error: "MAC 格式不对（例如 02:00:00:00:00:01）" });
       }
       var key = String(input.bindKey || "").replace(/[^0-9a-fA-F]/g, "");
       if (key.length > 0 && key.length !== 32) {
@@ -553,8 +553,8 @@
             return;
           }
           emit("candidates", [
-            { address: "E8:4A:54:12:34:56", name: "Xiaomi Scale S400 3456", product_id: 15317, rssi: -54, last_seen_ms: nowMs() },
-            { address: "E8:4A:54:AB:CD:EF", name: "Xiaomi Scale S400 CDEF", product_id: 15317, rssi: -78, last_seen_ms: nowMs() }
+            { address: "02:00:00:00:00:01", name: "Xiaomi Scale S400 0001", product_id: 15317, rssi: -54, last_seen_ms: nowMs() },
+            { address: "02:00:00:00:00:02", name: "Xiaomi Scale S400 0002", product_id: 15317, rssi: -78, last_seen_ms: nowMs() }
           ]);
         }, 900);
       } else if (store.device.mac && store.device.bindKeySet) {
@@ -566,7 +566,7 @@
     },
     candidates: function () {
       return JSON.stringify([
-        { address: "E8:4A:54:12:34:56", name: "Xiaomi Scale S400 3456", product_id: 15317, rssi: -54, last_seen_ms: nowMs() }
+        { address: "02:00:00:00:00:01", name: "Xiaomi Scale S400 0001", product_id: 15317, rssi: -54, last_seen_ms: nowMs() }
       ]);
     },
     exportData: function (format) {

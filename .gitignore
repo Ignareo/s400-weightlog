@@ -1,0 +1,22 @@
+# 构建产物
+build/
+*.log
+*.idsig
+
+# 签名材料：绝不提交（build.sh 发现缺失会自动重新生成本地 debug 证书）
+*.jks
+*.keystore
+*.p12
+local.properties
+
+# 分发的 APK 与预绑定 env（含 bind key，等同密钥）
+apks/
+*.apk
+*.env
+
+# 系统 / 编辑器
+.DS_Store
+.idea/
+*.iml
+.vscode/
+*.swp

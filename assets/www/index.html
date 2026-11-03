@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F6F7FB">
+<link rel="icon" href="data:,">
+<title>体重记</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app" id="app">
+  <header class="appbar">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">
+        <svg viewBox="0 0 48 48" width="34" height="34">
+          <rect x="3" y="3" width="42" height="42" rx="13" fill="#FF6900"/>
+          <rect x="9" y="10" width="30" height="28" rx="8" fill="#FFFFFF"/>
+          <rect x="10" y="11" width="28" height="12" rx="6" fill="#F2F4F8"/>
+          <rect x="15" y="16" width="18" height="7" rx="3" fill="#2A2F38"/>
+          <rect x="18" y="18" width="12" height="3" rx="1.5" fill="#FFFFFF"/>
+          <circle cx="18" cy="31" r="3.4" fill="#DDE2EA"/>
+          <circle cx="30" cy="31" r="3.4" fill="#DDE2EA"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <div class="brand-name">体重记</div>
+        <div class="brand-sub" id="brandSub">今天也在好好记录</div>
+      </div>
+    </div>
+    <button class="quick-add" data-action="add-manual" type="button">
+      <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+      记录
+    </button>
+  </header>
+
+  <div class="bar-danger" id="dbErrorBar" role="alert" hidden></div>
+
+  <main class="views" id="views">
+
+    <!-- ================= 首页 ================= -->
+    <section class="view active" id="view-home">
+      <div class="hero" id="hero">
+        <div class="hero-head">
+          <div>
+            <div class="hero-kicker">当前体重</div>
+            <div class="hero-weight"><span id="lastWeight">--</span><span class="unit">kg</span></div>
+          </div>
+          <div class="chip" id="scanChip">检查中</div>
+        </div>
+        <div class="hero-meta" id="lastMeta">还没有记录，绑定秤后站上去即可</div>
+        <div class="hero-spark">
+          <canvas id="spark" width="600" height="120"></canvas>
+          <div class="spark-empty" id="sparkEmpty">记录 2 次后显示趋势</div>
+        </div>
+        <div class="hero-foot">
+          <div class="delta" id="lastDelta">—</div>
+          <button class="btn-primary hero-btn" data-action="weigh" type="button" id="weighBtn">上秤称重</button>
+        </div>
+      </div>
+
+      <div class="metric-grid" id="metricGrid"></div>
+
+      <div class="card goal-card" id="goalCard"></div>
+
+      <div class="card device-strip" id="deviceStrip"></div>
+
+      <div class="section-head">
+        <h2>最近记录</h2>
+        <button class="link" data-action="go-records" type="button">全部记录</button>
+      </div>
+      <div class="card list-card" id="recentList"></div>
+
+      <p class="footnote">体重来自小米 S400 的 BLE 广播；体脂率 / BMI / 基础代谢为本地估算，仅供参考。</p>
+    </section>
+
+    <!-- ================= 记录 ================= -->
+    <section class="view" id="view-records">
+      <div class="page-head">
+        <div>
+          <h1>记录</h1>
+          <p class="page-sub" id="recordSub">全部称重数据</p>
+        </div>
+        <div class="page-head-right">
+          <span class="count-pill" id="recordCount">0 条</span>
+          <span class="tag" id="demoTag" hidden>含演示数据</span>
+        </div>
+      </div>
+      <div class="seg" id="recordSeg">
+        <button class="seg-item active" data-range="0" type="button">全部</button>
+        <button class="seg-item" data-range="7" type="button">近 7 天</button>
+        <button class="seg-item" data-range="30" type="button">近 30 天</button>
+        <button class="seg-item" data-range="90" type="button">近 90 天</button>
+      </div>
+      <div id="recordList" class="record-list"></div>
+      <div class="empty" id="recordsEmpty" hidden>
+        <div class="empty-emoji" aria-hidden="true">
+          <svg viewBox="0 0 48 48" width="54" height="54"><rect x="8" y="11" width="32" height="26" rx="9" fill="none" stroke="#FFB37A" stroke-width="2.4"/><rect x="14" y="16" width="20" height="7" rx="3" fill="#FFE3CC"/><path d="M16 32h16" stroke="#FF8A2B" stroke-width="2.4" stroke-linecap="round"/></svg>
+        </div>
+        <h3 id="recordsEmptyTitle">还没有记录</h3>
+        <p id="recordsEmptyText">站上体重秤，或在右上角手动补一条。</p>
+        <button class="btn-ghost" id="recordsEmptyAdd" data-action="add-manual" type="button">手动记录</button>
+      </div>
+    </section>
+
+    <!-- ================= 趋势 ================= -->
+    <section class="view" id="view-trend">
+      <div class="page-head">
+        <div>
+          <h1>趋势</h1>
+          <p class="page-sub">看长期变化，而不是单次数字</p>
+        </div>
+      </div>
+      <div class="seg" id="rangeSeg">
+        <button class="seg-item" data-days="7" type="button">7 天</button>
+        <button class="seg-item active" data-days="30" type="button">30 天</button>
+        <button class="seg-item" data-days="90" type="button">90 天</button>
+        <button class="seg-item" data-days="0" type="button">全部</button>
+      </div>
+      <div class="stat-row" id="trendStats"></div>
+      <div class="card chart-card">
+        <div class="chart-head">
+          <div>
+            <div class="chart-title" id="chartTitle">体重变化</div>
+            <div class="chart-sub" id="chartSub">—</div>
+          </div>
+          <div class="seg seg-sm" id="metricSeg">
+            <button class="seg-item active" data-metric="weight" type="button">体重</button>
+            <button class="seg-item" data-metric="fat" type="button">体脂</button>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="chart"></canvas>
+          <div class="chart-empty" id="chartEmpty">这个区间还没有数据</div>
+        </div>
+        <div class="chart-tip" id="chartTip" hidden></div>
+      </div>
+      <div class="card insight-card" id="insightCard"></div>
+      <p class="footnote">趋势里的体脂率由体重 + 阻抗 + 档案估算，适合看变化方向，不适合和体脂仪绝对值对比。</p>
+    </section>
+
+    <!-- ================= 我的 ================= -->
+    <section class="view" id="view-me">
+      <div class="profile-card" id="profileCard"></div>
+
+      <div class="section-head"><h2>设备</h2></div>
+      <div class="card" id="meDeviceCard"></div>
+
+      <div class="section-head"><h2>数据</h2></div>
+      <div class="card action-list">
+        <button class="action-row" data-action="export-csv" type="button">
+          <span class="action-ico">CSV</span>
+          <span class="action-text"><b>导出 CSV</b><small>保存到「下载/WeightLog」，可导入表格</small></span>
+          <span class="chev" aria-hidden="true">›</span>
+        </button>
+        <button class="action-row" data-action="export-json" type="button">
+          <span class="action-ico">JSON</span>
+          <span class="action-text"><b>导出 JSON</b><small>含原始广播，适合备份/排查</small></span>
+          <span class="chev" aria-hidden="true">›</span>
+        </button>
+        <button class="action-row" data-action="clear-demo" id="clearDemoRow" type="button" hidden>
+          <span class="action-ico">演示</span>
+          <span class="action-text"><b id="clearDemoLabel">清除演示记录</b><small>只删演示记录，真实记录不动</small></span>
+          <span class="chev" aria-hidden="true">›</span>
+        </button>
+        <button class="action-row danger" data-action="clear-all" type="button">
+          <span class="action-ico">清空</span>
+          <span class="action-text"><b>清空全部记录</b><small>只删记录，不动档案和设备绑定</small></span>
+          <span class="chev" aria-hidden="true">›</span>
+        </button>
+      </div>
+
+      <div class="section-head"><h2>关于</h2></div>
+      <div class="card about-card">
+        <div class="about-row"><span>版本</span><b id="aboutVersion">1.0</b></div>
+        <div class="about-row"><span>协议</span><b>MiBeacon v5 · 0xFE95</b></div>
+        <div class="about-row"><span>数据位置</span><b>本机 · 不上传</b></div>
+        <p class="about-note">本 App 只读取你自己的体重秤广播：需要秤的 MAC 和 16 字节 bind key。bind key 存在 App 私有目录，不会写日志、不会进导出文件。</p>
+      </div>
+      <p class="footnote" id="demoHint" hidden>浏览器演示模式：数据存在 localStorage，不会上传。</p>
+    </section>
+  </main>
+
+  <nav class="tabbar" id="tabbar">
+    <button class="tab-item active" data-view="home" type="button">
+      <svg viewBox="0 0 24 24" width="23" height="23" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1v-9.5Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+      <span>首页</span>
+    </button>
+    <button class="tab-item" data-view="records" type="button">
+      <svg viewBox="0 0 24 24" width="23" height="23" aria-hidden="true"><path d="M6 3.5h12a1.5 1.5 0 0 1 1.5 1.5v15L12 17l-7.5 3V5A1.5 1.5 0 0 1 6 3.5Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8.5 8.5h7M8.5 12h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      <span>记录</span>
+    </button>
+    <button class="tab-item" data-view="trend" type="button">
+      <svg viewBox="0 0 24 24" width="23" height="23" aria-hidden="true"><path d="M4 19V5M4 19h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="m7 15 4-5 3.2 3L20 6.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>趋势</span>
+    </button>
+    <button class="tab-item" data-view="me" type="button">
+      <svg viewBox="0 0 24 24" width="23" height="23" aria-hidden="true"><circle cx="12" cy="8" r="3.6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4.8 20c.7-3.7 3.6-5.7 7.2-5.7s6.5 2 7.2 5.7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <span>我的</span>
+    </button>
+  </nav>
+</div>
+
+<!-- ================= 遮罩 ================= -->
+<div class="mask" id="mask" aria-hidden="true" hidden></div>
+
+<!-- ================= 称重弹层 ================= -->
+<section class="sheet sheet-weigh" id="sheetWeigh" role="dialog" aria-modal="true" tabindex="-1" aria-label="称重">
+  <div class="sheet-grab"></div>
+  <div class="weigh-live" id="weighLive">
+    <div class="weigh-status" id="weighStatus">准备中…</div>
+    <div class="weigh-stage">
+      <div class="pulse pulse-1"></div>
+      <div class="pulse pulse-2"></div>
+      <div class="weigh-number"><span id="liveWeight">--</span><span class="weigh-unit">kg</span></div>
+    </div>
+    <div class="weigh-hint" id="weighHint">赤脚站上秤，等数字稳定</div>
+    <div class="weigh-chips" id="weighChips"></div>
+    <div class="weigh-actions">
+      <button class="btn-ghost" data-action="close-sheet" type="button">先不称了</button>
+    </div>
+  </div>
+
+  <div class="weigh-result" id="weighResult" hidden>
+    <div class="result-badge">已记录</div>
+    <div class="result-weight"><span id="resultWeight">--</span><span class="weigh-unit">kg</span></div>
+    <div class="result-time" id="resultTime"></div>
+    <div class="result-metrics" id="resultMetrics"></div>
+    <div class="result-actions">
+      <button class="btn-ghost" data-action="weigh-again" type="button">再称一次</button>
+      <button class="btn-primary" data-action="close-sheet" type="button">完成</button>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 手动记录 ================= -->
+<section class="sheet" id="sheetAdd" role="dialog" aria-modal="true" tabindex="-1" aria-label="手动记录">
+  <div class="sheet-grab"></div>
+  <div class="sheet-head">
+    <h3>手动记录</h3>
+    <button class="sheet-close" data-action="close-sheet" type="button" aria-label="关闭">×</button>
+  </div>
+  <div class="sheet-body">
+    <label class="field">
+      <span class="field-label">体重</span>
+      <div class="input-wrap">
+        <input id="inputWeight" class="input input-lg" type="number" inputmode="decimal" step="0.1" min="20" max="250" placeholder="65.4">
+        <span class="input-suffix">kg</span>
+      </div>
+    </label>
+    <label class="field">
+      <span class="field-label">时间</span>
+      <div class="input-wrap">
+        <input id="inputTime" class="input" type="datetime-local">
+      </div>
+    </label>
+    <label class="field">
+      <span class="field-label">备注 <span class="field-opt">可选</span></span>
+      <input id="inputNote" class="input" type="text" maxlength="60" placeholder="例如：早上空腹">
+    </label>
+    <p class="form-error" id="addError" hidden></p>
+    <button class="btn-primary btn-block" data-action="save-manual" type="button">保存记录</button>
+  </div>
+</section>
+
+<!-- ================= 档案 ================= -->
+<section class="sheet" id="sheetProfile" role="dialog" aria-modal="true" tabindex="-1" aria-label="个人档案">
+  <div class="sheet-grab"></div>
+  <div class="sheet-head">
+    <h3>个人档案</h3>
+    <button class="sheet-close" data-action="close-sheet" type="button" aria-label="关闭">×</button>
+  </div>
+  <div class="sheet-body">
+    <p class="sheet-desc">身高、年龄、性别用于估算体脂率 / BMI / 基础代谢，只存在本机。</p>
+    <label class="field">
+      <span class="field-label">昵称</span>
+      <input id="pName" class="input" type="text" maxlength="20" placeholder="怎么称呼你">
+    </label>
+    <div class="field-row">
+      <label class="field">
+        <span class="field-label">身高</span>
+        <div class="input-wrap">
+          <input id="pHeight" class="input" type="number" inputmode="numeric" min="80" max="250" placeholder="175">
+          <span class="input-suffix">cm</span>
+        </div>
+      </label>
+      <label class="field">
+        <span class="field-label">年龄</span>
+        <div class="input-wrap">
+          <input id="pAge" class="input" type="number" inputmode="numeric" min="5" max="120" placeholder="30">
+          <span class="input-suffix">岁</span>
+        </div>
+      </label>
+    </div>
+    <div class="field">
+      <span class="field-label">性别</span>
+      <div class="seg seg-block" id="sexSeg">
+        <button class="seg-item active" data-sex="male" type="button">男</button>
+        <button class="seg-item" data-sex="female" type="button">女</button>
+      </div>
+    </div>
+    <label class="field">
+      <span class="field-label">目标体重 <span class="field-opt">可选</span></span>
+      <div class="input-wrap">
+        <input id="pTarget" class="input" type="number" inputmode="decimal" step="0.1" min="20" max="250" placeholder="62.0">
+        <span class="input-suffix">kg</span>
+      </div>
+    </label>
+    <p class="form-error" id="profileError" hidden></p>
+    <button class="btn-primary btn-block" data-action="save-profile" type="button">保存</button>
+    <p class="form-tip">保存后会按新档案重算历史记录的体脂率 / BMI / 基础代谢。</p>
+  </div>
+</section>
+
+<!-- ================= 设备 ================= -->
+<section class="sheet" id="sheetDevice" role="dialog" aria-modal="true" tabindex="-1" aria-label="设备">
+  <div class="sheet-grab"></div>
+  <div class="sheet-head">
+    <h3>体重秤</h3>
+    <button class="sheet-close" data-action="close-sheet" type="button" aria-label="关闭">×</button>
+  </div>
+  <div class="sheet-body">
+    <div class="device-banner" id="deviceBanner"></div>
+    <div class="preset-box" id="presetBox" hidden>
+      <div class="preset-main">
+        <b>本机已预绑定 S400</b>
+        <span id="presetInfo"></span>
+      </div>
+      <button class="btn-ghost preset-btn" data-action="apply-preset" type="button">恢复预绑定</button>
+    </div>
+    <label class="field">
+      <span class="field-label">秤的 MAC</span>
+      <input id="dMac" class="input input-mono" type="text" autocapitalize="characters" maxlength="17" placeholder="E8:4A:54:12:34:56">
+    </label>
+    <label class="field">
+      <span class="field-label">bind key <span class="field-opt">16 字节 / 32 位 hex</span></span>
+      <div class="input-wrap">
+        <input id="dKey" class="input input-mono" type="password" autocomplete="off" maxlength="32" placeholder="已保存则留空">
+        <button class="input-eye" data-action="toggle-key" type="button" aria-label="显示密钥">显示</button>
+      </div>
+    </label>
+    <p class="form-tip">bind key 来自米家账号的设备信息（token extractor 输出里的 <code>BLE KEY</code>），不是 24 位的连接 token。保存后立即开始扫描，站上秤即可验证。</p>
+    <button class="btn-primary btn-block" data-action="save-device" type="button">保存配置</button>
+    <div class="divider"><span>附近的小米体重秤</span></div>
+    <div class="scan-box" id="scanBox">
+      <button class="btn-ghost btn-block" data-action="scan-nearby" type="button" id="scanNearbyBtn">扫描附近设备</button>
+      <div class="scan-list" id="scanList"></div>
+    </div>
+    <button class="btn-text-danger" data-action="clear-device" type="button">解除绑定（保留记录）</button>
+  </div>
+</section>
+
+<!-- ================= 记录详情 ================= -->
+<section class="sheet" id="sheetDetail" role="dialog" aria-modal="true" tabindex="-1" aria-label="记录详情">
+  <div class="sheet-grab"></div>
+  <div class="sheet-head">
+    <h3>记录详情</h3>
+    <button class="sheet-close" data-action="close-sheet" type="button" aria-label="关闭">×</button>
+  </div>
+  <div class="sheet-body" id="detailBody"></div>
+</section>
+
+<!-- ================= 首次引导 ================= -->
+<div class="onboarding" id="onboarding" role="dialog" aria-modal="true" tabindex="-1" hidden>
+  <div class="onboard-inner">
+    <div class="onboard-logo">
+      <svg viewBox="0 0 48 48" width="76" height="76"><rect x="3" y="3" width="42" height="42" rx="13" fill="#FF6900"/><rect x="9" y="10" width="30" height="28" rx="8" fill="#FFF"/><rect x="10" y="11" width="28" height="12" rx="6" fill="#F2F4F8"/><rect x="15" y="16" width="18" height="7" rx="3" fill="#2A2F38"/><rect x="18" y="18" width="12" height="3" rx="1.5" fill="#FFF"/><circle cx="18" cy="31" r="3.4" fill="#DDE2EA"/><circle cx="30" cy="31" r="3.4" fill="#DDE2EA"/></svg>
+    </div>
+    <h2>把每一次称重<br>认真记下来</h2>
+    <p>直连小米 S400 体重秤，自动记录体重、体脂、BMI，按周/月看趋势。</p>
+    <ul class="onboard-list">
+      <li><b>1</b><span>填好身高 / 年龄 / 性别</span></li>
+      <li><b>2</b><span id="onboardStep2">绑定体重秤的 MAC 和 bind key</span></li>
+      <li><b>3</b><span>站上秤，自动记录，不用打开米家</span></li>
+    </ul>
+    <button class="btn-primary btn-block" data-action="onboard-setup" type="button">开始设置</button>
+    <button class="btn-ghost btn-block" data-action="onboard-demo" type="button">先看看演示数据</button>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true" hidden></div>
+
+<script src="bridge-demo.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
